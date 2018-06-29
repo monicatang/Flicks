@@ -2,6 +2,8 @@ package me.monicatang.flicks;
 
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
+import android.support.v7.widget.LinearLayoutManager;
+import android.support.v7.widget.RecyclerView;
 import android.util.Log;
 import android.widget.Toast;
 
@@ -15,8 +17,12 @@ import org.json.JSONObject;
 
 import java.util.ArrayList;
 
+import butterknife.BindView;
+import butterknife.ButterKnife;
 import cz.msebera.android.httpclient.Header;
+import me.monicatang.flicks.models.Config;
 import me.monicatang.flicks.models.Movie;
+
 
 public class MovieListActivity extends AppCompatActivity {
 
@@ -30,16 +36,19 @@ public class MovieListActivity extends AppCompatActivity {
     public final static String TAG = "MovieListActivity";
 
 
-    String imageBaseUrl;
-    //poster size to use when fetching images, part of url
-    String posterSize;
-    //the list of currently playing movies
-    ArrayList<Movie> movies;
-
-
-
     //instance fields
     AsyncHttpClient client;
+
+    //the list of currently playing movies
+    ArrayList<Movie> movies;
+    //the recycler view
+    @BindView(R.id.rvMovies) RecyclerView rvMovies;
+    //the adapter wired to the recycler view
+    MovieAdapter adapter;
+    //image config
+    Config config;
+
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -48,6 +57,15 @@ public class MovieListActivity extends AppCompatActivity {
         //Initialize the client
         client = new AsyncHttpClient();
         movies = new ArrayList<>();
+        //initialize adapter
+        adapter = new MovieAdapter(movies);
+
+        //resolve recycler view and connect layout manager and adapter
+        ButterKnife.bind(this);
+        rvMovies.setLayoutManager(new LinearLayoutManager(this));
+        rvMovies.setAdapter(adapter);
+
+
         //Get configuration
         getConfiguration();
 
@@ -65,15 +83,17 @@ public class MovieListActivity extends AppCompatActivity {
             public void onSuccess(int statusCode, Header[] headers, JSONObject response) {
                 //load the results into movies list
                 try {
+
                     JSONArray results = response.getJSONArray("results");
                     //iterate through result set and create Movie objects
                     for (int i = 0; i < results.length(); i++){
                         Movie movie = new Movie(results.getJSONObject(i));
                         movies.add(movie);
+                        //notify adapter that a row was added
+                        adapter.notifyItemInserted(movies.size()-1);
                     }
                     Log.i(TAG, String.format("Loaded %s movies", results.length()));
-                    //get the now playing movie list
-                    getNowPlaying();
+
                 } catch (JSONException e) {
                     logError("Failed to parse now playing movies", e, true);
                 }
@@ -97,15 +117,15 @@ public class MovieListActivity extends AppCompatActivity {
             @Override
             public void onSuccess(int statusCode, Header[] headers, JSONObject response) {
                 try {
-                    JSONObject images = response.getJSONObject("images");
+                    config = new Config(response);
+                    Log.i(TAG, String.format("Loaded configuration with imageBaseUrl %s and posterSize %s",
+                            config.getImageBaseUrl(),
+                            config.getPosterSize()));
+                    //pass config back to adapter
+                    adapter.setConfig(config);
 
-                    //get image base url
-                    imageBaseUrl = images.getString("secure_base_url");
-                    //get poster size
-                    JSONArray posterSizeOptions = images.getJSONArray("poster_sizes");
-                    //use the option at index 3 or w342 as a fallback
-                    posterSize = posterSizeOptions.optString(3, "w342");
-                    Log.i(TAG, String.format("Loaded configuration with imageBaseUrl %s and posterSize %s", imageBaseUrl, posterSize));
+                    //get the now playing movie list
+                    getNowPlaying();
                 } catch (JSONException e) {
                     logError("Failed parsing configuration", e, true);
                 }
