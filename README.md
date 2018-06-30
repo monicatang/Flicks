@@ -25,7 +25,8 @@ The following **optional** features are implemented:
 ## Video Walkthrough
 
 Here's a walkthrough of implemented user stories:
-![Walkthrough](https://github.com/monicatang/Flicks/blob/master/flicks_gif.gif)
+![Walkthrough for vertical orientation](https://github.com/monicatang/Flicks/blob/master/flicks_vert.gif)
+![Walkthrough for horizontal orientation](https://github.com/monicatang/Flicks/blob/master/flicks_horz.gif)
 
 GIF created with [LiceCap](http://www.cockos.com/licecap/).
 
